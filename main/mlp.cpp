@@ -4,13 +4,11 @@
 #include <cmath>
 #include <iostream>
 
-double MLP::relu(double x)
-{
+double MLP::relu(double x) {
     return x > 0.0 ? x : 0.0;
 }
 
-double MLP::reluDerivative(double x)
-{
+double MLP::reluDerivative(double x) {
     return x > 0.0 ? 1.0 : 0.0;
 }
 
@@ -29,9 +27,10 @@ MLP::MLP(
 
     layers.push_back(output_size);
 
+    // create initial matrices sampling values from normal distribution
+    // TODO: implement He
     std::mt19937 gen(42);
     std::normal_distribution<double> dist(0.0, 0.1);
-
     for (size_t l = 0; l < layers.size() - 1; l++) {
 
         int in = layers[l];
@@ -59,11 +58,7 @@ MLP::transpose(const std::vector<std::vector<double>>& A)
 {
     int rows = A.size();
     int cols = A[0].size();
-
-    std::vector<std::vector<double>> T(
-        cols,
-        std::vector<double>(rows));
-
+    std::vector<std::vector<double>> T(cols, std::vector<double>(rows));
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++)
             T[j][i] = A[i][j];
@@ -108,13 +103,9 @@ MLP::forward(const std::vector<std::vector<double>>& X)
 {
     activations_.clear();
     pre_activations_.clear();
-
     activations_.push_back(X);
-
     std::vector<std::vector<double>> current = X;
-
     for (size_t l = 0; l < weights_.size(); l++) {
-
         auto Z = addBias(matmul(current, weights_[l]), biases_[l]);
         pre_activations_.push_back(Z);
         bool last_layer = (l == weights_.size() - 1);
@@ -124,7 +115,7 @@ MLP::forward(const std::vector<std::vector<double>>& X)
                 for (auto& v : row)
                     v = relu(v);
         }
-        activations_.push_back(A);
+        activations_.push_back(A);  // save activations for backpropagation
         current = A;
     }
 
@@ -136,13 +127,10 @@ double MLP::computeMSE(
     const std::vector<std::vector<double>>& y_pred)
 {
     double loss = 0.0;
-
     int B = y_true.size();
     int M = y_true[0].size();
-
     for (int i = 0; i < B; i++)
         for (int j = 0; j < M; j++) {
-
             double e = y_pred[i][j] - y_true[i][j];
             loss += e * e;
         }
@@ -169,8 +157,7 @@ void MLP::backward(
     std::vector<std::vector<std::vector<double>>> gradWs(weights_.size());
     std::vector<std::vector<double>> gradBs(weights_.size());
     for (int l = static_cast<int>(weights_.size()) - 1; l >= 0; --l) {
-        const auto& Aprev = activations_[l];
-
+        const auto& Aprev = activations_[l];  // this was saved in the forward propagation
         // dW = A_prev^T * delta
         auto gradW = matmul(transpose(Aprev), delta);
 
@@ -197,8 +184,11 @@ void MLP::backward(
             delta = std::move(delta_prev);
         }
     }
-
-    // gradient clipping
+    
+    // ----------------------------------------------------
+    // Gradient descent update
+    // with gradient clipping
+    // ----------------------------------------------------
     constexpr double clip = 1.0;
     for (size_t l = 0; l < weights_.size(); l++) {
         for (size_t i = 0; i < gradWs[l].size(); i++) {
