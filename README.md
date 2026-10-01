@@ -27,7 +27,7 @@ repo/
 > The python notebook `regression.ipynb` is used to train a scikit-learn MLPRegressor on the same data and compare the results with the C++ implementation.
 
 
-## Compiling
+## Compiling & Running
 
 ```bash
 mkdir build
