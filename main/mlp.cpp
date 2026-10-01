@@ -53,6 +53,8 @@ MLP::MLP(
     }
 }
 
+// notice that we implemented ourselves transpose, matmul and addBias
+// TODO: use vectorial operations (or a better library) to accelerate the computations
 std::vector<std::vector<double>>
 MLP::transpose(const std::vector<std::vector<double>>& A)
 {
